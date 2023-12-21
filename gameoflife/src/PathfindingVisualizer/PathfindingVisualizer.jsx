@@ -15,18 +15,65 @@ export default class PathfindingVisualizer extends Component {
     this.state = {
       grid: [],
       mouseIsPressed: false,
+      changingStartNode: false,
+      changingFinishNode: false,
     };
   }
+
+  setStartNodeMode = () => {
+    this.setState({ changingStartNode: true, changingFinishNode: false });
+  };
+
+  setFinishNodeMode = () => {
+    this.setState({ changingFinishNode: true, changingStartNode: false });
+  };
 
   componentDidMount() {
     const grid = getInitialGrid();
     this.setState({grid});
   }
 
-  handleMouseDown(row, col) {
-    const newGrid = getNewGridWithWallToggled(this.state.grid, row, col);
-    this.setState({grid: newGrid, mouseIsPressed: true});
+  updateNodePosition(grid, row, col) {
+    const newGrid = grid.slice();
+    for (let r = 0; r < newGrid.length; r++) {
+      for (let c = 0; c < newGrid[r].length; c++) {
+        // Reset the current start or finish node
+        if (this.state.changingStartNode && newGrid[r][c].isStart) {
+          newGrid[r][c].isStart = false;
+        }
+        if (this.state.changingFinishNode && newGrid[r][c].isFinish) {
+          newGrid[r][c].isFinish = false;
+        }
+      }
+    }
+    // Set the new start or finish node
+    newGrid[row][col].isStart = this.state.changingStartNode;
+    newGrid[row][col].isFinish = this.state.changingFinishNode;
+    return newGrid;
   }
+  
+
+  handleMouseDown(row, col) {
+    // Check if we are in the mode to change the start or finish node
+    if (this.state.changingStartNode || this.state.changingFinishNode) {
+      // Update the grid with the new start or finish node position
+      const newGrid = this.updateNodePosition(this.state.grid, row, col);
+  
+      // Update the state with the new grid and reset the node-changing modes
+      this.setState({ 
+        grid: newGrid, 
+        changingStartNode: false, 
+        changingFinishNode: false 
+      });
+  
+      return; // Exit the function to avoid executing wall toggle logic
+    }
+  
+    // Existing logic to toggle walls, if not in node-changing mode
+    const newGrid = getNewGridWithWallToggled(this.state.grid, row, col);
+    this.setState({ grid: newGrid, mouseIsPressed: true });
+  }
+  
 
   handleMouseEnter(row, col) {
     if (!this.state.mouseIsPressed) return;
@@ -65,48 +112,118 @@ export default class PathfindingVisualizer extends Component {
   }
 
   visualizeDijkstra() {
-    const {grid} = this.state;
-    const startNode = grid[START_NODE_ROW][START_NODE_COL];
-    const finishNode = grid[FINISH_NODE_ROW][FINISH_NODE_COL];
+    const { grid } = this.state;
+    const startNode = this.findNode(grid, node => node.isStart);
+    const finishNode = this.findNode(grid, node => node.isFinish);
     const visitedNodesInOrder = dijkstra(grid, startNode, finishNode);
     const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
     this.animateDijkstra(visitedNodesInOrder, nodesInShortestPathOrder);
   }
 
+  findNode(grid, conditionFunction) {
+    for (const row of grid) {
+      for (const node of row) {
+        if (conditionFunction(node)) {
+          return node;
+        }
+      }
+    }
+    return null; // Node not found
+  }
+
+  clearGrid = () => {
+    const newGrid = this.state.grid.map(row => {
+      return row.map(node => {
+        // Reset the properties related to pathfinding visualization
+        const newNode = {
+          ...node,
+          isVisited: false,
+          distance: Infinity,
+          previousNode: null,
+        };
+        // Reset the class name for each node element to its original state
+        const nodeElement = document.getElementById(`node-${node.row}-${node.col}`);
+        nodeElement.className = 'node' + 
+                                 (node.isStart ? ' node-start' : '') +
+                                 (node.isFinish ? ' node-finish' : '') +
+                                 (node.isWall ? ' node-wall' : '');
+  
+        return newNode;
+      });
+    });
+  
+    this.setState({ grid: newGrid });
+  };
+
+  clearWalls = () => {
+    const newGrid = this.state.grid.map(row => {
+      return row.map(node => {
+        return {
+          ...node,
+          isWall: false
+        };
+      });
+    });
+  
+    this.setState({ grid: newGrid });
+    // Reset any additional UI elements or states if necessary
+  };
+
+  
+  
   render() {
     const {grid, mouseIsPressed} = this.state;
 
     return (
       <>
-        <button onClick={() => this.visualizeDijkstra()}>
-          Visualize Dijkstra's Algorithm
-        </button>
-        <div className="grid">
-          {grid.map((row, rowIdx) => {
-            return (
-              <div key={rowIdx}>
-                {row.map((node, nodeIdx) => {
-                  const {row, col, isFinish, isStart, isWall} = node;
-                  return (
-                    <Node
-                      key={nodeIdx}
-                      col={col}
-                      isFinish={isFinish}
-                      isStart={isStart}
-                      isWall={isWall}
-                      mouseIsPressed={mouseIsPressed}
-                      onMouseDown={(row, col) => this.handleMouseDown(row, col)}
-                      onMouseEnter={(row, col) =>
-                        this.handleMouseEnter(row, col)
-                      }
-                      onMouseUp={() => this.handleMouseUp()}
-                      row={row}></Node>
-                  );
-                })}
-              </div>
-            );
-          })}
+        <div className='ButtCont'>
+            <button className='Butt' onClick={this.setStartNodeMode}>
+            Change Start Node
+            </button>
+            <button className='Butt' onClick={this.setFinishNodeMode}>
+            Change End Node
+            </button>
+            <button className='Butt' onClick={() => this.visualizeDijkstra()}>
+            Visualize Dijkstra's Algorithm
+            </button>
+            <button className='Butt' onClick={this.clearGrid}>
+                Clear Grid
+            </button>
+            <button className='Butt' onClick={this.clearWalls}>
+                Clear Walls
+            </button>
         </div>
+        
+        <div className='grindCont'>
+            <div className="grid">
+            {grid.map((row, rowIdx) => {
+                return (
+                <div key={rowIdx}>
+                    {row.map((node, nodeIdx) => {
+                    const {row, col, isFinish, isStart, isWall} = node;
+                    return (
+                        <Node
+                        key={nodeIdx}
+                        col={col}
+                        isFinish={isFinish}
+                        isStart={isStart}
+                        isWall={isWall}
+                        mouseIsPressed={mouseIsPressed}
+                        onMouseDown={(row, col) => this.handleMouseDown(row, col)}
+                        onMouseEnter={(row, col) =>
+                            this.handleMouseEnter(row, col)
+                        }
+                        onMouseUp={() => this.handleMouseUp()}
+                        row={row}></Node>
+                    );
+                    })}
+                </div>
+                );
+            })}
+            </div>
+
+        </div>
+        
       </>
     );
   }

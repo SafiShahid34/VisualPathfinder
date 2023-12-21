@@ -1,4 +1,48 @@
 .grid {
-    margin: 100px 0 0;
+    margin: 0;
   }
+
+body {
+    margin: 0;
+    background-color: rgb(50, 15, 69);
+}
+
+.grindCont {
+    background-color: rgb(242, 146, 255);
+    margin-left: 140px;
+    margin-right: 140px;
+    /* Replace with your chosen color */
+    /* Other styles for positioning or padding can go here */
+  }
+
+  .ButtCont {
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Spacing between buttons */
+    padding: 20px;
+    border-radius: 10px; /* Rounded corners */
+    margin-bottom: 5px; /* Space below the container */
+  }
+  
+  .Butt {
+    padding: 10px 20px;
+    background-color: #619477; /* A pleasant green */
+    color: white;
+    border: none;
+    border-radius: 5px; /* Slightly rounded corners for the buttons */
+    cursor: pointer;
+    font-family: 'Pacifico', cursive;
+    font-family: 'Permanent Marker', cursive;
+    transition: background-color 0.3s, transform 0.2s; /* Smooth transition for hover effects */
+  }
+  
+  .Butt:hover {
+    background-color: #367c39; /* A darker shade of green for hover state */
+    transform: translateY(-2px); /* Slight lift when hovering */
+  }
+  
+  .Butt:active {
+    transform: translateY(1px); /* Button appears pressed on active */
+  }
+  
   
